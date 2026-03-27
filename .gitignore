@@ -1,0 +1,37 @@
+# Binaries
+tolo
+build/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+tolo-*
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# Dependency directories
+vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Local data files
+.tolo/
+*.db.json
+
+# Temporary files
+tmp/
+temp/

@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build binaries
+        env:
+          CGO_ENABLED: 0
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "Building version $VERSION"
+
+          mkdir -p release
+
+          # Linux AMD64
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=$VERSION" -o release/tolo-linux-amd64
+          tar -czf release/tolo-${VERSION}-linux-amd64.tar.gz -C release tolo-linux-amd64
+
+          # Linux ARM64
+          GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X main.version=$VERSION" -o release/tolo-linux-arm64
+          tar -czf release/tolo-${VERSION}-linux-arm64.tar.gz -C release tolo-linux-arm64
+
+          # macOS AMD64
+          GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w -X main.version=$VERSION" -o release/tolo-darwin-amd64
+          tar -czf release/tolo-${VERSION}-darwin-amd64.tar.gz -C release tolo-darwin-amd64
+
+          # macOS ARM64
+          GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w -X main.version=$VERSION" -o release/tolo-darwin-arm64
+          tar -czf release/tolo-${VERSION}-darwin-arm64.tar.gz -C release tolo-darwin-arm64
+
+          # Windows AMD64
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X main.version=$VERSION" -o release/tolo-windows-amd64.exe
+          zip -j release/tolo-${VERSION}-windows-amd64.zip release/tolo-windows-amd64.exe
+
+          # Windows 386
+          GOOS=windows GOARCH=386 go build -ldflags="-s -w -X main.version=$VERSION" -o release/tolo-windows-386.exe
+          zip -j release/tolo-${VERSION}-windows-386.zip release/tolo-windows-386.exe
+
+      - name: Generate checksums
+        run: |
+          cd release
+          sha256sum * > checksums.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.tar.gz
+            release/*.zip
+            release/checksums.txt
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
