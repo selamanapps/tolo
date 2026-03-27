@@ -136,20 +136,20 @@ tolo se  # search (also: find)
 
 ```bash
 # Save SSH connection
-tolo save mypc:ssh amancca@192.168.0.100
+tolo save myserver:ssh user@192.168.1.10
 
 # Use it
-tolo r mypc
+tolo r myserver
 ```
 
 #### Cloud Commands
 
 ```bash
 # Save gcloud command
-tolo save ai-server:gcloud compute ssh --zone us-central1-c ai-agent --project my-project
+tolo save cloud-server:gcloud compute ssh --zone us-central1-a instance-1 --project my-project
 
 # Execute it
-tolo r ai-server
+tolo r cloud-server
 ```
 
 #### Docker Commands
@@ -166,7 +166,7 @@ tolo r dev
 
 ```bash
 # Update to change connection details
-tolo u mypc:ssh root@192.168.0.100
+tolo u myserver:ssh admin@192.168.1.20
 ```
 
 #### Show Alias Details
@@ -195,11 +195,11 @@ tolo find docker
 ║                    📋 Saved Aliases                            ║
 ╚════════════════════════════════════════════════════════════════╝
 
-  1  mypc       →  ssh amancca@192.168.0.100
-  2  ai-server  →  gcloud compute ssh ai-agent --project my-journey-app-482201
+  1  myserver   →  ssh user@192.168.1.10
+  2  gcloud     →  gcloud compute ssh instance-1 --project my-project
   3  dev        →  docker-compose up -d --build
 
-──────────────────────────────────────────────────────────────────
+─────────────────────────────────────────────────────────────────
   Total: 3
 ```
 
@@ -207,9 +207,9 @@ tolo find docker
 ```
 💾  Alias saved successfully
 
-Alias:   mypc
-Command: ssh amancca@192.168.0.100
-──────────────────────────────────────────────────────────────────
+Alias:   myserver
+Command: ssh user@192.168.1.10
+─────────────────────────────────────────────────────────────────
 ```
 
 </div>
