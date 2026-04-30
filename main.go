@@ -54,6 +54,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
+	case "script", "sc":
+		if err := cmd.HandleScript(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 	case "help", "h":
 		fmt.Println(cmd.Help())
 	case "version", "v":

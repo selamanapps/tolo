@@ -5,6 +5,7 @@ import (
 	"strings"
 	"tolo/executor"
 	"tolo/pretty"
+	"tolo/script"
 	"tolo/storage"
 )
 
@@ -239,6 +240,24 @@ func Completion(args string) error {
 	return nil
 }
 
+func ScriptCompletion(args string) error {
+	scripts := script.List()
+	if args == "" {
+		for _, s := range scripts {
+			fmt.Println(s.Name)
+		}
+		return nil
+	}
+
+	query := strings.ToLower(args)
+	for _, s := range scripts {
+		if strings.HasPrefix(strings.ToLower(s.Name), query) {
+			fmt.Println(s.Name)
+		}
+	}
+	return nil
+}
+
 func GenerateBashCompletion() string {
 	return `_tolo_completion() {
     local cur prev opts
@@ -247,12 +266,21 @@ func GenerateBashCompletion() string {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
     if [[ ${COMP_CWORD} -eq 1 ]]; then
-        opts="save s run r update u delete del rm d list ls l show sh info search se find help h version v"
+        opts="save s run r update u delete del rm d list ls l show sh info search se find script sc help h version v"
         COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
     elif [[ ${COMP_CWORD} -eq 2 ]]; then
         case "${prev}" in
             run|r|update|u|delete|del|rm|d|show|sh|info|search|se|find)
                 COMPREPLY=($(tolo --completion "${cur}"))
+                ;;
+            script|sc)
+                COMPREPLY=($(compgen -W "run r list ls show sh steps delete del rm d save s help h" -- "${cur}"))
+                ;;
+        esac
+    elif [[ ${COMP_CWORD} -eq 3 ]]; then
+        case "${prev}" in
+            run|r|show|sh|steps|delete|del|rm|d)
+                COMPREPLY=($(tolo sc --completion "${cur}"))
                 ;;
         esac
     fi
@@ -286,10 +314,31 @@ _tolo() {
         'search:Search aliases'
         'se:Search aliases (shortcut)'
         'find:Search aliases (shortcut)'
+        'script:Multi-step script runner'
+        'sc:Multi-step script runner (shortcut)'
         'help:Show help'
         'h:Show help (shortcut)'
         'version:Show version'
         'v:Show version (shortcut)'
+    )
+
+    local -a script_commands
+    script_commands=(
+        'run:Run a script'
+        'r:Run a script (shortcut)'
+        'list:List all scripts'
+        'ls:List all scripts (shortcut)'
+        'show:Show script content'
+        'sh:Show script content (shortcut)'
+        'steps:Show script steps'
+        'delete:Delete a script'
+        'del:Delete a script (shortcut)'
+        'rm:Delete a script (shortcut)'
+        'd:Delete a script (shortcut)'
+        'save:Save a script'
+        's:Save a script (shortcut)'
+        'help:Show script help'
+        'h:Show script help (shortcut)'
     )
 
     if [[ CURRENT -eq 2 ]]; then
@@ -300,6 +349,21 @@ _tolo() {
                 local aliases
                 aliases=($(tolo --completion ''))
                 _describe 'aliases' aliases
+                ;;
+            script|sc)
+                _describe 'script-command' script_commands
+                ;;
+        esac
+    elif [[ CURRENT -eq 4 ]]; then
+        case $words[2] in
+            script|sc)
+                case $words[3] in
+                    run|r|show|sh|steps|delete|del|rm|d)
+                        local scripts
+                        scripts=($(tolo sc --completion ''))
+                        _describe 'scripts' scripts
+                        ;;
+                esac
                 ;;
         esac
     fi
@@ -322,8 +386,18 @@ Commands:
     list (ls, l)                  List all aliases
     show (sh)    alias            Show details of an alias
     search (se)  query            Search aliases
+    script (sc)                   Multi-step script runner
     help (h)                      Show this help message
     version (v)                   Show version
+
+Script Commands:
+    tolo sc <name>                Run a script
+    tolo sc list                  List all scripts
+    tolo sc show <name>           Show script content
+    tolo sc steps <name>          Show script steps
+    tolo sc delete <name>         Delete a script
+    tolo sc save <name> [-f file] Save a script
+    tolo sc help                  Script help & YAML format
 
 Examples:
     tolo save server1:ssh user@192.168.1.10
@@ -333,6 +407,7 @@ Examples:
     tolo ls
     tolo show server1
     tolo search ssh
+    tolo sc cloud-start
 
 Installation:
     Install shell completion:

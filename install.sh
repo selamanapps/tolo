@@ -57,7 +57,13 @@ install_from_source() {
 
 install_prebuilt() {
     PLATFORM=$(detect_os)
-    DOWNLOAD_URL="$REPO_URL/releases/download/v$VERSION/$BINARY_NAME-$PLATFORM"
+    ARCHIVE_NAME="$BINARY_NAME-v$VERSION-$PLATFORM.tar.gz"
+    
+    if [[ "$PLATFORM" == windows-* ]]; then
+        ARCHIVE_NAME="$BINARY_NAME-v$VERSION-$PLATFORM.zip"
+    fi
+    
+    DOWNLOAD_URL="$REPO_URL/releases/download/v$VERSION/$ARCHIVE_NAME"
     
     echo "Installing pre-built binary for $PLATFORM..."
     echo "Downloading from: $DOWNLOAD_URL"
@@ -66,12 +72,35 @@ install_prebuilt() {
     cd "$TEMP_DIR"
     
     if command -v curl &> /dev/null; then
-        curl -L -o "$BINARY_NAME" "$DOWNLOAD_URL"
+        curl -fsSL -o "$ARCHIVE_NAME" "$DOWNLOAD_URL"
     elif command -v wget &> /dev/null; then
-        wget -O "$BINARY_NAME" "$DOWNLOAD_URL"
+        wget -q --show-progress -O "$ARCHIVE_NAME" "$DOWNLOAD_URL"
     else
         echo "Error: Neither curl nor wget is installed."
         exit 1
+    fi
+    
+    if [ ! -f "$ARCHIVE_NAME" ]; then
+        echo "Error: Download failed. File not found: $ARCHIVE_NAME"
+        exit 1
+    fi
+    
+    echo "Extracting..."
+    if [[ "$ARCHIVE_NAME" == *.tar.gz ]]; then
+        tar -xzf "$ARCHIVE_NAME"
+        rm "$ARCHIVE_NAME"
+        EXTRACTED_BINARY=$(ls -1 "$BINARY_NAME"-* 2>/dev/null | head -1)
+        if [ -n "$EXTRACTED_BINARY" ] && [ -f "$EXTRACTED_BINARY" ]; then
+            mv "$EXTRACTED_BINARY" "$BINARY_NAME"
+        fi
+    elif [[ "$ARCHIVE_NAME" == *.zip ]]; then
+        unzip -q "$ARCHIVE_NAME"
+        rm "$ARCHIVE_NAME"
+        EXTRACTED_BINARY=$(ls -1 "$BINARY_NAME"*.exe 2>/dev/null | head -1)
+        if [ -n "$EXTRACTED_BINARY" ] && [ -f "$EXTRACTED_BINARY" ]; then
+            mv "$EXTRACTED_BINARY" "$BINARY_NAME.exe"
+            BINARY_NAME="$BINARY_NAME.exe"
+        fi
     fi
     
     chmod +x "$BINARY_NAME"
@@ -106,7 +135,14 @@ main() {
     
     case "${choice:-1}" in
         1)
-            if curl -sSf -I "$REPO_URL/releases/download/v$VERSION/$BINARY_NAME-$(detect_os)" > /dev/null 2>&1; then
+            PLATFORM=$(detect_os)
+            if [[ "$PLATFORM" == windows-* ]]; then
+                ARCHIVE_NAME="$BINARY_NAME-v$VERSION-$PLATFORM.zip"
+            else
+                ARCHIVE_NAME="$BINARY_NAME-v$VERSION-$PLATFORM.tar.gz"
+            fi
+            
+            if curl -sSf -I "$REPO_URL/releases/download/v$VERSION/$ARCHIVE_NAME" > /dev/null 2>&1; then
                 install_prebuilt
             else
                 echo "⚠ Pre-built binary not found. Building from source..."
